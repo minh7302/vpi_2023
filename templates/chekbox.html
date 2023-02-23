@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>Toggling checkboxes</p>
+<script>
+function getcheckboxes() {
+    var node_list = document.getElementsByTagName('input');
+    var checkboxes = [];
+    for (var i = 0; i < node_list.length; i++) 
+    {
+        var node = node_list[i];
+        if (node.getAttribute('type') == 'checkbox') 
+        {
+            checkboxes.push(node);
+        }
+    } 
+    return checkboxes;
+}
+function toggle(source) {
+    checkboxes = getcheckboxes();
+    for (var i = 0, n = checkboxes.length; i < n; i++) 
+    {
+        checkboxes[i].checked = source.checked;
+    }
+}
+</script>    
+
+<input type="checkbox" name="foo1" value="bar1"> Bar 1<br/>
+<input type="checkbox" name="foo2" value="bar2"> Bar 2<br/>
+<input type="checkbox" name="foo3" value="bar3"> Bar 3<br/>
+<input type="checkbox" name="foo4" value="bar4"> Bar 4<br/>
+
+<input type="checkbox" onClick="toggle(this)" /> Toggle All<br/>
+
+</body>
+</html>

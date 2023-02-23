@@ -1,0 +1,21 @@
+<form onsubmit="return false;">
+    <input type="text" id="myInput">
+    <button type="button" id="myButton" onclick="submitForm()">Submit</button>
+  </form>
+  
+  <script>
+  function submitForm() {
+    // Code xử lý khi người dùng nhấn nút submit
+    console.log("Form submitted!");
+  }
+  
+  // Lắng nghe sự kiện keyup trên trường input
+  document.getElementById("myInput").addEventListener("keyup", function(event) {
+    // Kiểm tra xem phím người dùng vừa ấn có phải là phím Enter không
+    if (event.keyCode === 13) {
+      // Submit form bằng cách gọi hàm submitForm()
+      submitForm();
+    }
+  });
+  </script>
+  
