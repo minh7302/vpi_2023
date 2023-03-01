@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="/static/styles.css">
   <script src="/static/script.js" defer></script>
   <script src="https://kit.fontawesome.com/abdc579eb6.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.5/pagination.min.js"></script>
   <!-- <link rel="stylesheet" href="/static/jquery.dataTables.min.css">
   <script src="/static/jquery-3.5.1.js"></script>
   <script src="/static/jquery.dataTables.min.js"></script> -->
@@ -137,26 +139,9 @@
     <main class="content" style="margin: 1rem; width: 100%;">
       <!-- {%if keys != null%}
       <div class="option" style="display: flex; justify-content: space-around; margin-bottom: 1rem;">
-        <button id="show_export" class="beauty-button" onclick="showContent('export')">EXPORT</button>
         <button id="show_filter" class="beauty-button" onclick="showContent('filter')">FILTER</button>
-        <button id="hide-column-button" class="beauty-button">EDIT</button>
       </div>
       {%endif%}
-
-      <div id="export" class="checkbox" style="transform: translateX(7%); display: none;">
-        <div style="margin-bottom: 10px;">
-            <div style="font-weight: bold; font-family:Georgia, 'Times New Roman', Times, serif; display: none;">SELECT COLUMN TO EXPORT</div>
-            <div>
-                <button style="background-color: rgba(250, 235, 215, 0.534); cursor: pointer; border-radius: 5px;" onclick="select_all('names_selected')">
-                  Select all
-                </button>
-                {% for name in keys %}
-                    <input type="checkbox" class="names_selected" value="{{name}}">{{name}}
-                {% endfor %}
-                <strong onclick="Redirect()" style="border: 1px solid black; cursor: pointer; padding: 5px; margin-top: -10px; margin-left: 20px; color: white; background-color: gray; border-radius: 5px;">Export</strong>
-            </div>
-        </div>
-      </div>
 
       <div id="filter" style="display: none;">
         <input type="text" class="filter-input" placeholder="Enter your queries"/>
@@ -164,12 +149,22 @@
       </div> -->
       <div class="top" style="display: flex; justify-content: center; background-color: rgb(248,249,250); margin-bottom: 1rem;">
         <div class="t-left" style="display: flex; justify-content: center;flex-direction: column; width: 70%;">
-          <div style="display: grid; place-items: center; margin-bottom: 5px;">
+          <div style="display: flex; justify-content: space-around; margin-bottom: 5px;">
             <div style="display: flex;">
               <div style="font-weight: bold;">Nhập tên giếng: </div>
               <input id="name_input" type="text" placeholder="">
               <button onclick="getTable()">Submit</button>
             </div>
+            {%if keys != null%}
+            <div>
+              <label for="beauty" style="font-size: 20px;">Show</label>
+              <select id="mySelect" onchange="redirectToPage()" name="beauty" style="padding: 3px; ">
+                <option value="20">20</option>
+                <option value="30" selected>30</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            {%endif%}
           </div>
           {%if keys != null%}
           <div id="export" class="checkbox" style="overflow-x: scroll;">
@@ -198,45 +193,91 @@
           </div>
         {%endif%}
       </div>
-      <div class="table">
-        <table border="1" id="example" class="display dataTable" style="width:100%; border-collapse: collapse;" aria-describedby="example_info">
-          <thead>
-              <tr style="text-align: center;">
-                {%for col in keys%}
-                    <th class="sorting" tabindex="0" aria-controls="example" rowspan="1" colspan="1">{{col}}</th>
-                {%endfor%}
-                {% if keys != null %}
-                <th class="hidden" style="width: 8%;">Edit</th>
-                {%endif%}
-              </tr>
-          </thead>
-          <tbody>
-            {%for row in data%}
-              <tr>
-                {%for col in keys%}
-                  <td>{{row[col]}}</td>
-                {%endfor%}
-                <td class="hide_show hidden" style="text-align: center;">
-                  <div>
-                    <button class="edit-button" onclick="editRow(this)">Sửa</button>
-                    <button class="delete-button" onclick="deleteRow(this)">Xóa</button>
-                  </div>
-                </td>
-              </tr>
-            {%endfor%}
-          </tbody>
-        </table>
+      <div id="table" style="display: flex; flex-direction: column-reverse;">
+        
+        {%if keys != null%}
+        <div id="pagination"></div>
+        
+        {%endif%}
       </div>
     </main>
   </div>
 </body>
 </html>
 
-<!-- <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    let table = new DataTable('#example');
-});
-</script> -->
+<script>
+  function create_Table(url) {
+    fetch(url)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        var table = document.createElement("table");
+        table.setAttribute("id", "myTable");
+  
+        //tạo tên cột
+        var thead = document.createElement("thead");
+        table.appendChild(thead);
+  
+        var headerRow = document.createElement("tr");
+        thead.appendChild(headerRow);
+        var headers = Object.keys(data[0]);
+        for (let i = 0; i < headers.length; i++) {
+          var th = document.createElement("th");
+          th.textContent = headers[i];
+          headerRow.appendChild(th);
+        }
+        var th = document.createElement("th");
+        th.setAttribute("class","hidden")
+        th.textContent = "Edit";
+        headerRow.appendChild(th);
+  
+        // nội dung các dòng table
+        var tbody = document.createElement("tbody");
+        table.appendChild(tbody);
+        for (let i = 0; i < data.length; i++) {
+          var row = document.createElement("tr");
+          tbody.appendChild(row);
+          for (var property in data[i]) {
+            var cell = document.createElement("td");
+            cell.textContent = `${data[i][property]}`;
+            row.appendChild(cell);
+          }
+          var cell = row.insertCell();
+          cell.setAttribute("class", "hide_show hidden")
+          cell.innerHTML = "Email";
+        }
+        // Thêm bảng vào DOM
+  
+        document.querySelector("#table").appendChild(table);
+        
+        
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+  }
+  var count = Number('{{count_rows}}')
+  var arr = []
+  for (let i = 0; i < count; i++) {
+    arr.push(i)
+  }
+
+  $('#pagination').pagination({
+    dataSource: arr,
+    pageSize: Number('{{rowsPerPage}}'),
+    showGoInput: true,
+    showGoButton: true,
+  
+    callback: function(data, pagination) {
+      url = 'http://127.0.0.1:8000/api/{{table_name}}?page=' + pagination.pageNumber
+      create_Table(url)
+  
+      var myTable = document.getElementById("myTable");
+      if (myTable != null) myTable.parentNode.removeChild(myTable);
+    }
+  })
+  </script>
 
 <script>
   function toggle(source) {
@@ -304,9 +345,11 @@
 <script>
   var hideColumnButton = document.getElementById("hide-column-button");
   var columnToHide = document.querySelectorAll(".hide_show");
-  var table = document.getElementById("example");
-  var lastColumnIndex = table.rows[0].cells.length;
-  var column= document.querySelector("th:nth-child(" + lastColumnIndex + ")");
+  console.log(columnToHide)
+  var table = document.getElementById("myTable");
+  var lastColumnIndex, column;
+  if (table != null) lastColumnIndex = table.rows[0].cells.length;
+  if (table != null) column= document.querySelector("th:nth-child(" + lastColumnIndex + ")");
   
   hideColumnButton.addEventListener("click", () => {
     if (columnToHide[0].classList.contains("hidden")) {
@@ -324,7 +367,7 @@
 <script>
   var input = document.getElementById('name_input');
   function getTable(){
-    window.location="http://127.0.0.1:8000/api/" + input.value;
+    window.location="http://127.0.0.1:8000/api/tables/" + input.value;
   }
   input.value = '{{table_name}}'
   input.addEventListener("keyup", function(event) {
@@ -333,3 +376,31 @@
     }
   });
 </script>
+<!-- <script>
+  const url = "http://127.0.0.1:8000/api/{{table_name}}";
+  option_list = [20,30,50]
+  const currentUrl = window.location.href;
+  function redirectToPage() {
+    var selectElement = document.getElementById("mySelect");
+    var selectedValue = selectElement.value;
+    if (selectedValue) {
+      if (currentUrl.split('page=').length < 2) {
+        window.location.assign(url + '?rowsPerPage=' + selectedValue);
+      } else {
+        current_page = 'page=' + currentUrl.split('page=')[1]
+        window.location.assign(url + '?rowsPerPage=' + selectedValue + '&' + current_page);
+      }
+      localStorage.setItem("selectedOption", selectedValue);
+    }
+    
+  }
+  const selectedOption = localStorage.getItem("selectedOption");
+  const select = document.getElementById("mySelect");
+  for (let option of select.options) {
+    if (option.value === selectedOption) {
+      option.selected = true;
+      break;
+    }
+  }
+  localStorage.removeItem("selectedOption")
+</script> -->

@@ -248,3 +248,70 @@ button {
   cursor: pointer;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
 }
+#myTable th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: rgb(0,170,255);
+  color: white;
+}
+#myTable tr:nth-child(even){background-color: #f2f2f2;}
+
+#myTable tr:hover {background-color: #ddd;}
+
+#myTable {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#myTable td, #myTable th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+.paginationjs {
+  display: flex;
+  justify-content: flex-end;
+}
+.paginationjs-go-input, .paginationjs-go-button {
+  display: grid;
+  place-items: center;
+}
+.paginationjs-go-input input{
+  width: 30px;
+  height: 30px;
+  margin-left: 5px;
+}
+.paginationjs-go-button input{
+  margin-left: 5px;
+  background-color: rgb(4,169,254);
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 25%;
+  color: white;
+  font-size: 18px;
+}
+.paginationjs-pages ul{
+  display: flex;
+}
+.paginationjs-pages ul li:not(.paginationjs-ellipsis){
+  display: grid;
+  place-items: center;
+  list-style: none;
+  margin: 3px;
+  padding: 5px;
+  border: 1px solid gray;
+  box-sizing: border-box;
+  cursor: pointer;
+  background-color: rgb(242, 242, 242);
+}
+.paginationjs-ellipsis {
+  display: grid;
+  place-items: center;
+  list-style: none;
+}
+.paginationjs-pages ul li:hover{
+  background-color: rgb(197, 197, 197);
+}

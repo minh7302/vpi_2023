@@ -21,6 +21,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 Base = declarative_base()
 import io
@@ -31,6 +32,21 @@ app = FastAPI()
 class Item(BaseModel):
     columns: dict
 
+# Điều chỉnh cấu hình CORS
+origins = [
+    "http://localhost",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:5500",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # class Item(BaseModel):
 #     __tablename__ = "user"
 #     user_id : str
@@ -39,9 +55,11 @@ class Item(BaseModel):
 #     role : str
 templates = Jinja2Templates(directory='templates')
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.get('/')
-def main(request: Request):
-    return templates.TemplateResponse('index.html', {'request': request})
+def home(request : Request):
+    return templates.TemplateResponse('index.html', {'request':request})
+
 
 @app.put("/api/update/{table_name}/{item_id}")
 def update_item(table_name: str, item_id: str, item: Item):
@@ -68,12 +86,16 @@ def update_item(table_name: str, item_id: str, item: Item):
 
 
 @app.get("/api/tables/{table_name}")
-async def get_table_data(table_name: str):
+def main(request: Request, table_name: str, rowsPerPage: int = 50):
     session = Session()
-    result = session.execute(f"SELECT * FROM public.{table_name}").fetchall()
+    count_rows = session.execute(f"SELECT count(*) FROM public.{table_name}").fetchall()
     session.close()
-    
-    return [dict(row) for row in result]
+    session = Session()
+    data = session.execute(f"SELECT * FROM public.{table_name}").fetchall()
+    session.close()
+    keys = data[0].keys()
+    return templates.TemplateResponse('index.html', {'request': request, 'count_rows':(count_rows[0])[0], 'rowsPerPage':rowsPerPage, 
+                                                      'table_name':table_name, 'keys':keys, 'data':data})
 
 @app.post("/api/add/{table_name}")
 async def add_data(table_name: str, data: dict):
@@ -186,8 +208,11 @@ def get_data(table_name: str, field_name: str, field_value: str):
 
     return {"data": data}
 
+
+
+
 @app.get("/api/{table_name}")
-async def get_items(request: Request, table_name: str, page: int = 1, rowsPerPage: int = 50) -> List[dict]:
+async def get_items(table_name: str, page: int = 1, rowsPerPage: int = 50) -> List[dict]:
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)
     # Thực hiện truy vấn dữ liệu với offset và limit được tính dựa trên start và end
@@ -195,8 +220,13 @@ async def get_items(request: Request, table_name: str, page: int = 1, rowsPerPag
     end = page * rowsPerPage
     stmt = select(table).offset(start).limit(end - start)
     rows = engine.execute(stmt)
-    data =  [dict(row) for row in rows]
-    return templates.TemplateResponse('index.html', {'request': request, 'data' : data, 'keys' : data[0].keys(), 'table_name': table_name})
+    # Trả về kết quả dưới dạng list các dict
+    return [dict(row) for row in rows]
+
+
+# def main(request: Request):
+#     return templates.TemplateResponse('index.html', {'request': request})
+
 
 # API lấy dữ liệu từ bảng theo cột và các giá trị trong cột phải là duy nhất
 @app.get("/api/{table_name}/{column_name}/unique")
@@ -213,27 +243,6 @@ async def get_unique_column_values(table_name: str, column_name: str) -> List[st
     # thực hiện câu truy vấn và trả về kết quả dưới dạng danh sách các giá trị
     rows = engine.execute(stmt)
     return [row[0] for row in rows]
-
-
-
-# Viết API lấy curve_id phụ thuộc vào well_id 
-@app.get("/api/get_data/cal_curve_value/well_id/{well_id}/{curve_id}")
-def get_cal_curve_data(well_id: str, curve_id: str):
-    # Lấy dữ liệu từ bảng cal_curve_value với điều kiện well_id và curve_id
-    table = Table("cal_curve_value", metadata, autoload=True, autoload_with=engine)
-    query = select([table]).where(and_(table.c.well_id == well_id, table.c.curve_id == curve_id))
-    results = engine.execute(query).fetchall()
-    # Chuyển kết quả thành dạng dictionary
-    data = []
-    for row in results:
-        row_dict = {}
-        for col in row.keys():
-            row_dict[col] = row[col]
-        data.append(row_dict)
-    return {"data": data}
-
-
-
 
 
 if __name__ == '__main__':
