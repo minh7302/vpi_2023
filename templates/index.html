@@ -155,7 +155,7 @@
               <input id="name_input" type="text" placeholder="">
               <button onclick="getTable()">Submit</button>
             </div>
-            {%if keys != null%}
+            <!-- {%if keys != null%}
             <div>
               <label for="beauty" style="font-size: 20px;">Show</label>
               <select id="mySelect" onchange="redirectToPage()" name="beauty" style="padding: 3px; ">
@@ -164,7 +164,7 @@
                 <option value="50">50</option>
               </select>
             </div>
-            {%endif%}
+            {%endif%} -->
           </div>
           {%if keys != null%}
           <div id="export" class="checkbox" style="overflow-x: scroll;">
@@ -244,19 +244,50 @@
             row.appendChild(cell);
           }
           var cell = row.insertCell();
+          cell.style.width = "8%";
           cell.setAttribute("class", "hide_show hidden")
-          cell.innerHTML = "Email";
+          var editBtn = document.createElement("button");
+          editBtn.innerHTML = "Sửa";
+          editBtn.setAttribute("onclick", "editRow(this)");
+
+          var deleteBtn = document.createElement("button");
+          deleteBtn.innerHTML = "Xoá";
+          deleteBtn.setAttribute("onclick", "deleteRow(this)");
+          cell.appendChild(editBtn);
+          cell.appendChild(deleteBtn);
         }
         // Thêm bảng vào DOM
   
         document.querySelector("#table").appendChild(table);
+        var hideColumnButton = document.getElementById("hide-column-button");
+        var columnToHide = document.querySelectorAll(".hide_show");
+        console.log(columnToHide)
+        var table = document.getElementById("myTable");
+        var lastColumnIndex, column;
+        lastColumnIndex = table.rows[0].cells.length;
+        column= document.querySelector("th:nth-child(" + lastColumnIndex + ")");
         
+        hideColumnButton.addEventListener("click", () => {
+          if (columnToHide[0].classList.contains("hidden")) {
+            hideColumnButton.innerText = "DONE!";
+            columnToHide.forEach((cell) => cell.classList.remove("hidden"));
+            column.classList.remove("hidden");
+            
+          } else {
+            columnToHide.forEach((cell) => cell.classList.add("hidden"));
+            hideColumnButton.innerText = "EDIT";
+            column.classList.add("hidden");
+          }
+        });
         
       })
       .catch(function(error) {
         console.log(error);
       });
   }
+
+
+
   var count = Number('{{count_rows}}')
   var arr = []
   for (let i = 0; i < count; i++) {
@@ -278,6 +309,36 @@
     }
   })
   </script>
+
+<!-- <script>
+  const url = "http://127.0.0.1:8000/api/{{table_name}}";
+  option_list = [20,30,50]
+  const currentUrl = window.location.href;
+  function redirectToPage() {
+    var selectElement = document.getElementById("mySelect");
+    var selectedValue = selectElement.value;
+    if (selectedValue) {
+      if (currentUrl.split('page=').length < 2) {
+        window.location.assign(url + '?rowsPerPage=' + selectedValue);
+      } else {
+        current_page = 'page=' + currentUrl.split('page=')[1]
+        window.location.assign(url + '?rowsPerPage=' + selectedValue + '&' + current_page);
+      }
+      localStorage.setItem("selectedOption", selectedValue);
+    }
+    
+  }
+  const selectedOption = localStorage.getItem("selectedOption");
+  const select = document.getElementById("mySelect");
+  for (let option of select.options) {
+    if (option.value === selectedOption) {
+      option.selected = true;
+      break;
+    }
+  }
+  localStorage.removeItem("selectedOption")
+</script> -->
+
 
 <script>
   function toggle(source) {
@@ -323,7 +384,24 @@
   
   function deleteRow(button) {
     var row = button.parentNode.parentNode; // lấy dòng chứa nút "Xóa"
-    console.log(row)
+    record_id = row.cells[0]
+    fetch (`http://127.0.0.1:8000/api/delete/cal_curve_value/record_id/${record_id}`, {
+          method: "DELETE",
+    })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      console.log(data);
+      alert("Object deleted successfully!");
+    })
+    .catch((error) => {
+      console.error("There was an error:", error);
+      alert("Failed to delete object");
+    });
     row.parentNode.removeChild(row); // xóa dòng khỏi bảng
   }
   </script>
@@ -342,28 +420,7 @@
       else window.location="http://127.0.0.1:8000/api/export/{{table_name}}?" + arr;
   }
 </script>
-<script>
-  var hideColumnButton = document.getElementById("hide-column-button");
-  var columnToHide = document.querySelectorAll(".hide_show");
-  console.log(columnToHide)
-  var table = document.getElementById("myTable");
-  var lastColumnIndex, column;
-  if (table != null) lastColumnIndex = table.rows[0].cells.length;
-  if (table != null) column= document.querySelector("th:nth-child(" + lastColumnIndex + ")");
-  
-  hideColumnButton.addEventListener("click", () => {
-    if (columnToHide[0].classList.contains("hidden")) {
-      hideColumnButton.innerText = "DONE!";
-      columnToHide.forEach((cell) => cell.classList.remove("hidden"));
-      column.classList.remove("hidden");
-      
-    } else {
-      columnToHide.forEach((cell) => cell.classList.add("hidden"));
-      hideColumnButton.innerText = "EDIT";
-      column.classList.add("hidden");
-    }
-  });
-</script>
+
 <script>
   var input = document.getElementById('name_input');
   function getTable(){
@@ -376,31 +433,3 @@
     }
   });
 </script>
-<!-- <script>
-  const url = "http://127.0.0.1:8000/api/{{table_name}}";
-  option_list = [20,30,50]
-  const currentUrl = window.location.href;
-  function redirectToPage() {
-    var selectElement = document.getElementById("mySelect");
-    var selectedValue = selectElement.value;
-    if (selectedValue) {
-      if (currentUrl.split('page=').length < 2) {
-        window.location.assign(url + '?rowsPerPage=' + selectedValue);
-      } else {
-        current_page = 'page=' + currentUrl.split('page=')[1]
-        window.location.assign(url + '?rowsPerPage=' + selectedValue + '&' + current_page);
-      }
-      localStorage.setItem("selectedOption", selectedValue);
-    }
-    
-  }
-  const selectedOption = localStorage.getItem("selectedOption");
-  const select = document.getElementById("mySelect");
-  for (let option of select.options) {
-    if (option.value === selectedOption) {
-      option.selected = true;
-      break;
-    }
-  }
-  localStorage.removeItem("selectedOption")
-</script> -->

@@ -86,7 +86,7 @@ def update_item(table_name: str, item_id: str, item: Item):
 
 
 @app.get("/api/tables/{table_name}")
-def main(request: Request, table_name: str, rowsPerPage: int = 50):
+def main(request: Request, table_name: str, rowsPerPage: int = 30):
     session = Session()
     count_rows = session.execute(f"SELECT count(*) FROM public.{table_name}").fetchall()
     session.close()
@@ -212,7 +212,7 @@ def get_data(table_name: str, field_name: str, field_value: str):
 
 
 @app.get("/api/{table_name}")
-async def get_items(table_name: str, page: int = 1, rowsPerPage: int = 50) -> List[dict]:
+async def get_items(table_name: str, page: int = 1, rowsPerPage: int = 30) -> List[dict]:
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)
     # Thực hiện truy vấn dữ liệu với offset và limit được tính dựa trên start và end
