@@ -4,8 +4,8 @@ import pandas as pd
 from pydantic import BaseModel
 from pyparsing import Optional
 import uvicorn
-from db_connect import engine, Session
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from db_connect import engine, Session, get_db, metadata, Base
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends
 from sqlalchemy.orm import sessionmaker, mapper
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, distinct,select, and_
 from sqlalchemy.ext.declarative import declarative_base
@@ -23,10 +23,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-Base = declarative_base()
+# Base = declarative_base()
+metadata = MetaData(bind=engine)
 import io
 from fastapi import FastAPI, Response
-metadata = MetaData(bind=engine)
 
 app = FastAPI()
 class Item(BaseModel):
@@ -94,8 +94,11 @@ def main(request: Request, table_name: str, rowsPerPage: int = 30):
     data = session.execute(f"SELECT * FROM public.{table_name}").fetchall()
     session.close()
     keys = data[0].keys()
+    session = Session()
+    list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
+    session.close()
     return templates.TemplateResponse('index.html', {'request': request, 'count_rows':(count_rows[0])[0], 'rowsPerPage':rowsPerPage, 
-                                                      'table_name':table_name, 'keys':keys, 'data':data})
+                                                      'table_name':table_name, 'keys':keys, 'data':data, 'list_tables':list_tables})
 
 @app.post("/api/add/{table_name}")
 async def add_data(table_name: str, data: dict):
@@ -108,17 +111,17 @@ async def add_data(table_name: str, data: dict):
     session.close()
     return {"message": "Data added successfully"}
 
-# # api viết để có thể update mọi thứ 
-# @app.put("/api/update/{table_name}")
-# async def update_data(table_name: str, data: dict):
-#     metadata = MetaData()
-#     table = Table(table_name, metadata, autoload=True, autoload_with=engine)
-#     session = Session()
-#     query = table.update().values(**data)
-#     session.execute(query)
-#     session.commit()
-#     session.close()
-#     return {"message": "Data updated successfully"}
+# api viết để có thể update mọi thứ 
+@app.put("/api/update/{table_name}")
+async def update_data(table_name: str, data: dict):
+    metadata = MetaData()
+    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+    session = Session()
+    query = table.update().values(**data)
+    session.execute(query)
+    session.commit()
+    session.close()
+    return {"message": "Data updated successfully"}
 
 # @app.put("/api/update/{table_name}/{field_name}/{field_value}")
 # async def update_data(table_name: str, field_name: str, field_value: str, data: dict):
@@ -186,7 +189,7 @@ async def export_data(table_name: str, fields: str):
 @app.post("/api/import/{table_name}")
 async def import_data(table_name: str, file: UploadFile):
     df = pd.read_csv(file.file)
-    df.to_sql(table_name, engine, if_exists="replace")
+    df.to_sql(table_name, engine, if_exists="append")
     return {"message": "Import thành công"}
 
 
@@ -206,20 +209,20 @@ def get_data(table_name: str, field_name: str, field_value: str):
             row_dict[col] = row[col]
         data.append(row_dict)
 
-    return {"data": data}
+    return data
 
 
 
 
 @app.get("/api/{table_name}")
-async def get_items(table_name: str, page: int = 1, rowsPerPage: int = 30) -> List[dict]:
+async def get_items(table_name: str, db : Session = Depends(get_db), page: int = 1, rowsPerPage: int = 30) -> List[dict]:
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)
     # Thực hiện truy vấn dữ liệu với offset và limit được tính dựa trên start và end
     start = (page - 1) * rowsPerPage
     end = page * rowsPerPage
-    stmt = select(table).offset(start).limit(end - start)
-    rows = engine.execute(stmt)
+    stmt = select(table).order_by(table.c.record_id).offset(start).limit(end - start)
+    rows = db.execute(stmt)
     # Trả về kết quả dưới dạng list các dict
     return [dict(row) for row in rows]
 
@@ -244,6 +247,11 @@ async def get_unique_column_values(table_name: str, column_name: str) -> List[st
     rows = engine.execute(stmt)
     return [row[0] for row in rows]
 
+@app.get("/import_table")
+def home(request : Request):
+    return templates.TemplateResponse('import_file.html', {'request':request})
 
 if __name__ == '__main__':
     uvicorn.run("app:app", reload=True)
+
+

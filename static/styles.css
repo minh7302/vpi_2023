@@ -99,7 +99,7 @@ button {
   position: sticky;
   left: 0;
   top: var(--header-height);
-  z-index: 2;
+  z-index: 10000;
 }
 
 .sidebar .hidden-sidebar {
@@ -314,4 +314,12 @@ button {
 }
 .paginationjs-pages ul li:hover{
   background-color: rgb(197, 197, 197);
+}
+.content .content_bottom {
+  display: flex;
+  justify-content: center;
+}
+.content .content_bottom .visualization {
+  width: 40%; 
+
 }
