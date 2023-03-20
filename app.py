@@ -22,7 +22,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-
+import csv
+from api.auth import PER, PerMission, allow_admin_roles, allow_datamanager_roles, allow_reviewer_roles, login_user
+import requests
+from api import auth
 # Base = declarative_base()
 metadata = MetaData(bind=engine)
 import io
@@ -31,6 +34,8 @@ from fastapi import FastAPI, Response
 app = FastAPI()
 class Item(BaseModel):
     columns: dict
+
+app.include_router(auth.routes)
 
 # Điều chỉnh cấu hình CORS
 origins = [
@@ -42,7 +47,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,36 +62,26 @@ templates = Jinja2Templates(directory='templates')
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get('/')
+async def login(request: Request):
+    if request.method == 'POST':
+        form = await request.form()
+        username = form['username']
+        password = form['password']
+        print(username)
+    return templates.TemplateResponse('login.html', {'request': request})
+
+@app.get('/home')
 def home(request : Request):
-    return templates.TemplateResponse('index.html', {'request':request})
-
-
-@app.put("/api/update/{table_name}/{item_id}")
-def update_item(table_name: str, item_id: str, item: Item):
-    # create session
-    db = Session()
-
-    # get table metadata and build update query
-    table = Table(table_name, metadata, autoload=True)
-    stmt = text(f"UPDATE {table_name} SET ")
-    update_columns = []
-    for column_name, column_value in item.columns.items():
-        update_columns.append(f"{column_name} = '{column_value}'")
-    stmt = stmt + ", ".join(update_columns) + f" WHERE id = '{item_id}'"
-
-    # execute update query and commit changes
-    db.execute(stmt)
-    db.commit()
-
-    # close session
-    db.close()
-
-    # return updated item
-    return {"id": item_id, **item.columns}
-
+    return templates.TemplateResponse('home.html', {'request':request})
 
 @app.get("/api/tables/{table_name}")
 def main(request: Request, table_name: str, rowsPerPage: int = 30):
+    form = {
+        'username': 'superadmin',
+        'password': 'abc123'
+    }
+    response = requests.post('http://127.0.0.1:8000/auth/token', data=form)
+    token = response.json()
     session = Session()
     count_rows = session.execute(f"SELECT count(*) FROM public.{table_name}").fetchall()
     session.close()
@@ -97,8 +92,33 @@ def main(request: Request, table_name: str, rowsPerPage: int = 30):
     session = Session()
     list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
     session.close()
-    return templates.TemplateResponse('index.html', {'request': request, 'count_rows':(count_rows[0])[0], 'rowsPerPage':rowsPerPage, 
-                                                      'table_name':table_name, 'keys':keys, 'data':data, 'list_tables':list_tables})
+    return templates.TemplateResponse('home.html', {'request': request, 'count_rows':(count_rows[0])[0], 'rowsPerPage':rowsPerPage, 
+                                                      'table_name':table_name, 'keys':keys, 'data':data, 'list_tables':list_tables,
+                                                      'token' : token})
+
+@app.put("/api/update/{table_name}/{record_id}")
+async def update_data(table_name: str, record_id: int, data: dict):
+    # Kiểm tra bảng có tồn tại trong CSDL hay không
+    if not engine.has_table(table_name):
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+
+    # Lấy thông tin bảng và kiểm tra cột ID có tồn tại trong bảng hay không
+    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+    if 'record_id' not in table.columns.keys():
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' does not have 'record_id' column")
+
+    # Tìm bản ghi cần cập nhật theo ID
+    with engine.connect() as conn:
+        result = conn.execute(table.select().where(table.c.record_id == record_id)).fetchone()
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Record with ID '{record_id}' not found in table '{table_name}'")
+
+        # Cập nhật dữ liệu của bản ghi
+        update_query = table.update().where(table.c.record_id == record_id).values(data)
+        conn.execute(update_query)
+
+    return {"message": f"Record with ID '{record_id}' in table '{table_name}' has been updated."}
+
 
 @app.post("/api/add/{table_name}")
 async def add_data(table_name: str, data: dict):
@@ -110,30 +130,6 @@ async def add_data(table_name: str, data: dict):
     session.commit()
     session.close()
     return {"message": "Data added successfully"}
-
-# api viết để có thể update mọi thứ 
-@app.put("/api/update/{table_name}")
-async def update_data(table_name: str, data: dict):
-    metadata = MetaData()
-    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
-    session = Session()
-    query = table.update().values(**data)
-    session.execute(query)
-    session.commit()
-    session.close()
-    return {"message": "Data updated successfully"}
-
-# @app.put("/api/update/{table_name}/{field_name}/{field_value}")
-# async def update_data(table_name: str, field_name: str, field_value: str, data: dict):
-#     with app.app_context():
-#         metadata = MetaData()
-#         table = Table(table_name, metadata, autoload=True, autoload_with=engine)
-#         session = Session()
-#         query = table.update().where(getattr(table.c, field_name) == field_value).values(**data)
-#         session.execute(query)
-#         session.commit()
-#         session.close()
-#         return {"message": "Data updated successfully"}
 
 @app.delete("/api/delete/cal_curve_value")
 async def delete_cal_curve_value1():
@@ -176,21 +172,55 @@ async def export_tables(table_name: str, response: Response):
     return Response(content=contents, media_type="text/csv")
 
 
-@app.get("/api/export/{table_name}/{fields}")
-async def export_data(table_name: str, fields: str):
-    with engine.connect() as connection:
-        query = f"SELECT {fields} FROM {table_name}"
-        result = connection.execute(query)
-        data = [dict(row) for row in result.fetchall()]
-        return {"data": data}
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/export/{table_name}/{columns}")
+async def export_column_data(table_name: str, columns: str):
+    # Load bảng từ CSDL
+    try:
+        table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+    except:
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+        
+    # kiểm tra xem cột có tồn tại trong bảng hay không
+    column_list = [c.strip() for c in columns.split(",")]
+    invalid_columns = set(column_list) - set(table.columns.keys())
+    if invalid_columns:
+        raise HTTPException(status_code=404, detail=f"Columns {', '.join(invalid_columns)} do not exist in table '{table.name}'.")
+    
+    # lấy dữ liệu của các cột từ CSDL
+    with engine.connect() as conn:
+        query = f"SELECT {', '.join(column_list)} FROM {table_name}"
+        result = conn.execute(query).fetchall()
+    
+    # tạo dataframe từ dữ liệu cột
+    df = pd.DataFrame(result, columns=column_list)
+    
+    # tạo file CSV từ dataframe
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False)
+    buffer.seek(0)
+    
+    # trả về file CSV cho người dùng
+    return StreamingResponse(buffer, media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={table_name}.csv"})
+
     
     
     
 @app.post("/api/import/{table_name}")
-async def import_data(table_name: str, file: UploadFile):
+async def import_data(table_name: str, file: UploadFile = File(...)):
+    # Kiểm tra bảng có tồn tại trong CSDL hay không
+    if not engine.has_table(table_name):
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+        
+    # Đọc tập tin CSV và chuyển đổi thành dataframe
     df = pd.read_csv(file.file)
-    df.to_sql(table_name, engine, if_exists="append")
-    return {"message": "Import thành công"}
+    
+    # Thêm dữ liệu từ dataframe vào bảng đã có sẵn
+    df.to_sql(table_name, engine, if_exists='append', index=False)
+    
+    # Trả về kết quả thành công
+    return {"message": "Data imported successfully."}
 
 
 #API chọn ra các bảng A10,A15 trong cal_curve_value
@@ -214,7 +244,7 @@ def get_data(table_name: str, field_name: str, field_value: str):
 
 
 
-@app.get("/api/{table_name}")
+@app.get("/api/{table_name}", dependencies=[Depends(login_user)])
 async def get_items(table_name: str, db : Session = Depends(get_db), page: int = 1, rowsPerPage: int = 30) -> List[dict]:
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)

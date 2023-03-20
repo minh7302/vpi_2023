@@ -1,37 +1,56 @@
 <!DOCTYPE html>
 <html>
+<head>
+	<title>Login Form</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <body>
+	<form action="login" method="POST">
+		<label for="username">Username:</label>
+		<input type="text" id="username" name="username" required><br><br>
+		<label for="password">Password:</label>
+		<input type="password" id="password" name="password" required><br><br>
+		<input type="submit" value="Login">
+	</form>
 
-<p>Toggling checkboxes</p>
-<script>
-function getcheckboxes() {
-    var node_list = document.getElementsByTagName('input');
-    var checkboxes = [];
-    for (var i = 0; i < node_list.length; i++) 
-    {
-        var node = node_list[i];
-        if (node.getAttribute('type') == 'checkbox') 
-        {
-            checkboxes.push(node);
+	<script>
+    var form = document.querySelector('form');
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        var formData = new FormData(form);
+        var response = await fetch('http://127.0.0.1:8000/auth/token', {
+            method: 'POST',
+            body: formData
+        });
+        var data = await response.json();
+        if (data.access_token) {
+            localStorage.setItem('token', data.access_token);
+            document.cookie = `token=${data.access_token}`;
+            var table_name = 'cal_curve_value'; // replace with the actual table name
+            var token = data.access_token;
+            var apiResponse = await fetch(`http://127.0.0.1:8000/api/${table_name}`, {
+                headers: {
+                    'Authorization': `bearer ${token}`
+                }
+            });
+        } else {
+            alert('Invalid username or password');
         }
-    } 
-    return checkboxes;
-}
-function toggle(source) {
-    checkboxes = getcheckboxes();
-    for (var i = 0, n = checkboxes.length; i < n; i++) 
-    {
-        checkboxes[i].checked = source.checked;
-    }
-}
-</script>    
+        fetch('http://127.0.0.1:8000/api/cal_curve_value', {
+        method: 'GET',
+        headers: {
+            'Authorization': `bearer ${token}`,
+            'login_user': `${token}`
+        }
+        })
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error(error))
 
-<input type="checkbox" name="foo1" value="bar1"> Bar 1<br/>
-<input type="checkbox" name="foo2" value="bar2"> Bar 2<br/>
-<input type="checkbox" name="foo3" value="bar3"> Bar 3<br/>
-<input type="checkbox" name="foo4" value="bar4"> Bar 4<br/>
-
-<input type="checkbox" onClick="toggle(this)" /> Toggle All<br/>
+        
+    });
+</script>
 
 </body>
 </html>
