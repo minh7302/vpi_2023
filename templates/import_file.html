@@ -1,24 +1,32 @@
 <form id="upload-form" enctype="multipart/form-data">
-    <input type="file" name="file">
-    <button type="submit">Upload</button>
+  <input type="file" name="file">
+  <button type="submit">Upload</button>
 </form>
 <script>
 const form = document.getElementById("upload-form");
 form.addEventListener("submit", handleFormSubmit);
 async function handleFormSubmit(event) {
-  event.preventDefault();
+event.preventDefault();
 
-  const form = event.target;
-  const formData = new FormData(form);
-  console.log(formData)
+const form = event.target;
+const formData = new FormData(form);
+console.log(formData)
 
-  const response = await fetch("http://127.0.0.1:8000/api/import/cal_curve_value", {
-    method: "POST",
-    body: formData,
+fetch("http://127.0.0.1:8000/api/import/cal_curve_value", {
+  method: "POST",
+  body: formData,
+}).then(response => {
+    if (response.ok) {
+      // Nếu kết quả trả về thành công, hiển thị thông báo
+      alert("Thực hiện thành công!");
+      window.close(); 
+    } else {
+      alert("Có lỗi xảy ra!");
+    }
+  })
+  .catch(error => {
+    console.error(error);
   });
+  }
 
-  const result = await response.json();
-  console.log(result);
-}
-
-  </script>
+</script>

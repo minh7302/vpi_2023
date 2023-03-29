@@ -51,7 +51,7 @@
     }
     .header-right {
       display: flex;
-      justify-content: space-between;
+      justify-content: space-around;
       width: 30%;
     }
     .notification .badge {
@@ -61,6 +61,7 @@
       border-radius: 50%;
       background-color: red;
       color: white;
+      font-size: 10px;
     }
     .dropdown-content {
       display: none;
@@ -75,6 +76,9 @@
       padding: 12px 16px;
       text-decoration: none;
       display: block;
+    }
+    .dropdown .dropdown-content a:hover{
+      background-color: rgb(221,221,221);
     }
     .header a:hover {
       background-color: var(--lightest-gray);
@@ -337,11 +341,7 @@
     .content_bottom {
       display: flex;
       justify-content: center;
-      width: 100%;
-    }
-    .visualization {
-      display: grid;
-      place-content: center;
+      width: 50vh;
     }
     #table {
       display: grid;
@@ -359,18 +359,17 @@
     </div>
     
     <div class="header-right">
-      <a href="#contact" style="font-size: 25px;">Contact</a>
-      <a href="#about" style="font-size: 25px;">About</a>
+      <a href="#contact" style="font-size: 20px;">Contact</a>
+      <a href="#about" style="font-size: 20px;">About</a>
       
       <div class="notification">
         <i class="fa-regular fa-bell fa-2x" style="cursor: pointer;"></i>
         <span class="badge">3</span>
       </div>
       <div class="dropdown" style="position: relative; display: inline-block; cursor: pointer;">
-        <div>abc <i class="fa-solid fa-caret-down"></i></div>
+        <div><i class="fa-solid fa-user fa-2x"></i><i class="fa-solid fa-caret-down"></i></div>
         <div class="dropdown-content">
-          <a href="#">abc</a>
-          <a href="#">abc</a>
+          <a href="http://127.0.0.1:8000/logout">Logout</a>
         </div>
       </div>
     </div>
@@ -380,19 +379,24 @@
     <aside class="sidebar" data-sidebar>
       <div class="top-sidebar" style="display: flex; flex-direction: column; align-items: center;">
         <a href="#" class="channel-logo"><img src="/static/VPI_logo.png" alt="Channel Logo"></a>
-        <div class="hidden-sidebar" style="text-align: center;width: 100%;">Danh sách giếng khoan</div>
+        <!-- <div class="hidden-sidebar" style="text-align: center;width: 100%;">Danh sách giếng khoan</div> -->
         <!-- <div class="hidden-sidebar channel-name" style="color: rgb(96, 96, 96);font-size: .75rem;">Web Dev Simplified</div> -->
       </div>
       <div class="middle-sidebar">
         <ul class="sidebar-list">
           <li class="sidebar-list-item active">
-            <a href="#" class="sidebar-link">
+            <a href="http://127.0.0.1:8000" class="sidebar-link">
               <svg class="sidebar-icon" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" ><g ><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"></path></g></svg>
               <div class="hidden-sidebar">Dashboard</div>
             </a>
           </li>
           <li class="sidebar-list-item">
-            <a href="http://127.0.0.1:8000/import_table" class="sidebar-link">
+            <a onclick="import_tab()" class="sidebar-link">
+              <script>
+                function import_tab() {
+                  window.open("http://127.0.0.1:8000/import_table");
+                }
+              </script>
               <?xml version="1.0" encoding="utf-8"?>
               <svg class="sidebar-icon" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false"><line id="secondary" x1="12" y1="16" x2="12" y2="3" style="fill: none; stroke: rgb(44, 169, 188); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></line><polyline id="secondary-2" data-name="secondary" points="16 7 12 3 8 7" style="fill: none; stroke: rgb(44, 169, 188); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></polyline><path id="primary" d="M20,16v4a1.08,1.08,0,0,1-1.14,1H5.14A1.08,1.08,0,0,1,4,20V16" style="fill: none; stroke: rgb(0, 0, 0); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></path></svg>
               <div class="hidden-sidebar">Upload</div>
@@ -406,7 +410,7 @@
           </li>
           {% for i in list_tables%}
           <li class="sidebar-list-item">
-            <a href="#" class="sidebar-link" style="margin-left: 2rem;">
+            <a href="http://127.0.0.1:8000/api/tables/{{i[0]}}" class="sidebar-link" style="margin-left: 2rem;">
               <div class="hidden-sidebar" style="color: rgb(2,131,198);">{{i[0]}}</div>
             </a>
           </li>
@@ -473,7 +477,7 @@
 
 
 
-    <main class="content" style="margin: 1rem; width: 100%;">
+    <main class="content" style="margin: 1rem; width: 100%; ">
       <!-- {%if keys != null%}
       <div class="option" style="display: flex; justify-content: space-around; margin-bottom: 1rem;">
         <button id="show_filter" class="beauty-button" onclick="showContent('filter')">FILTER</button>
@@ -489,7 +493,7 @@
           <div style="display: flex; justify-content: space-around; margin-bottom: 5px;">
             <div style="display: flex;">
               <div style="font-weight: bold;">Nhập tên giếng: </div>
-              <input id="name_input" type="text" placeholder="">
+              <input id="name_input" type="text" placeholder="{{well_id}}">
               <button onclick="getTable()">Submit</button>
             </div>
             <!-- {%if keys != null%}
@@ -524,19 +528,55 @@
         {%if keys != null%}
           <div class="t-right" style="width: 30%; display: grid; place-items: center;">
             <div>
-              <input style="width: 5rem;" type="text" placeholder="Top">
-              <input style="width: 5rem;" type="text" placeholder="Base">
-              <button>Submit</button>
+              <input id="t_start" style="width: 5rem;" type="text" placeholder="Top">
+              <input id="b_end" style="width: 5rem;" type="text" placeholder="Base">
+              <button onclick="new_pag()">Submit</button>
             </div>
             <div style="display: flex;">
-              <button id="show_add_row" class="beauty-button" onclick="showContent('add_row')"> Thêm 1 bản ghi</button>
+              <button id="show_add_row" class="beauty-button" onclick="showContent()"> Thêm 1 bản ghi</button>
+              <script>
+                function showContent() {
+                  var myElement = document.getElementById('add_row');
+                  var myButton = document.getElementById("show_add_row");
+                  if (myElement.style.display === "none") {
+                    myElement.style.display = "";
+                    myButton.innerHTML = 'Huỷ'
+                  } else {
+                    myElement.style.display = "none";
+                    myButton.innerHTML = 'Thêm 1 bản ghi'
+                  }
+                }
+              </script>
               <button id="hide-column-button" class="beauty-button" style="margin-left: 1rem;">Sửa</button>
-              <button class="beauty-button" style="margin-left: 1rem;">Xoá </button>
+              <button class="beauty-button" style="margin-left: 1rem;" onclick="deleteTable('{{well_id}}')">Xoá {{well_id}}</button>
+              <script>
+                function deleteTable(well_id) {
+                  fetch (`http://127.0.0.1:8000/api/delete/cal_curve_value/well_id/${well_id}`, {
+                        method: "DELETE",
+                  })
+                  .then((response) => {
+                    if (!response.ok) {
+                      throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                  })
+                  .then((data) => {
+                    alert("Object deleted successfully!");
+                  })
+                  .catch((error) => {
+                    console.error("There was an error:", error);
+                    alert("Failed to delete object");
+                  });
+                  var table_delete = document.getElementById('table');
+                  table_delete.innerHTML = '';
+                  alert('{{well_id}} không còn tồn tại');
+                }
+              </script>
             </div>
           </div>
         {%endif%}
       </div>
-      <div id="show_add_row" style="display: none;">
+      <div id="add_row" style="display: none;">
         <table style="display: grid; place-items: center; margin-bottom: 2rem;">
           <tr>
             {%for i in keys%}
@@ -545,19 +585,74 @@
             </td>
             {%endfor%}
           </tr>
+          <tr>
+            <td><button id="confirm_add" onclick="add_row_funct()">Submit</button></td>
+          </tr>
         </table>
+        
+        <script>
+          function add_row_funct() {
+            var data = {};
+            var keys = ['record_id','curve_id','md','cal_value','well_id','file_id','create_uid','create_time','write_uid','write_time']
+            var important = ['md', 'cal_value','file_id','well_id']
+            keys.forEach(function(key) {
+                var value = document.getElementById(key).value;
+                if (important.includes(key) && value == '') {
+                  data = {}
+                  return false;
+                }
+                if (value !== '') {
+                    data[key] = value;
+                }
+            });
+            count = Object.keys(data).length
+            if (count < 1) {
+              data = {}
+              alert('Điền đầy đủ các giá trị md, cal_value, file_id, well_id')
+            }
+            fetch('http://127.0.0.1:8000/api/add/cal_curve_value', {
+              method: 'POST',
+              headers: {
+                'accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(data)
+            })
+            document.getElementById('show_add_row').innerHTML = 'Thêm 1 bản ghi';
+            document.getElementById('add_row').style.display = 'none';
+          }
+        </script>
       </div>
-      <div class="content_bottom">
-        <div id="table" style="display: flex; flex-direction: column-reverse; flex-shrink: 0;">
+      <div style="display: grid; place-items: center;">
+        <div class="content_bottom">
+          <div id="table" style="display: flex; flex-direction: column-reverse; flex-shrink: 0; overflow-y: auto; width: 200%; margin-right: 2rem;">
+            {%if keys != null%}
+            <div id="pagination"></div>
+            {%endif%}
+          </div>
           {%if keys != null%}
-          <div id="pagination"></div>
+          <div class="visualization">
+            <iframe id='dash_html' src="http://127.0.0.1:8050" height="94.5%"></iframe>
+            <script>
+              // Lấy tham chiếu tới iframe
+              const iframe = document.getElementById('dash_html');
+            
+              // Chờ cho Dash app load hoàn tất
+              iframe.addEventListener('load', () => {
+                // Lấy tham chiếu tới đối tượng `dcc.Input`
+                const input = iframe.contentWindow.document.getElementById('well_id');
+            
+                // Truyền giá trị mới vào `dcc.Input`
+                input.value = 'A10';
+            
+                // Gọi đến Dash callback để cập nhật giá trị
+                const dashCallback = iframe.contentWindow.dash_callback;
+                dashCallback('input-value', 'value', 'A10');
+              });
+            </script>
+          </div>
           {%endif%}
         </div>
-        {%if keys != null%}
-        <div class="visualization">
-          <iframe src="http://127.0.0.1:8050/" width="100%" height="50%"></iframe>
-        </div>
-        {%endif%}
       </div>
     </main>
   </div>
@@ -566,16 +661,17 @@
 
 <script>
   function create_Table(url) {
-    fetch(url, {
+    fetch(url , {
         method: 'GET',
         headers: {
-            'Authorization': 'bearer {{token.access_token}}',
-            'login_user': '{{token.access_token}}'
+            'Authorization': 'bearer {{token}}',
+            'login_user': '{{token}}'
         }
       }).then(function(response) {
         return response.json();
       })
       .then(function(data) {
+        data = data['records']
         var table = document.createElement("table");
         table.setAttribute("id", "myTable");
   
@@ -625,7 +721,6 @@
         document.querySelector("#table").appendChild(table);
         var hideColumnButton = document.getElementById("hide-column-button");
         var columnToHide = document.querySelectorAll(".hide_show");
-        console.log(columnToHide)
         var table = document.getElementById("myTable");
         var lastColumnIndex, column;
         lastColumnIndex = table.rows[0].cells.length;
@@ -643,35 +738,78 @@
             column.classList.add("hidden");
           }
         });
-        
+          var h_table = document.getElementById('myTable').clientHeight;
+          var h_dash = document.getElementById('dash_html');
+          h_dash.style.height = `${h_table}`;
       })
       .catch(function(error) {
         console.log(error);
       });
   }
 
-
-
-  var count = Number('{{count_rows}}')
-  var arr = []
-  for (let i = 0; i < count; i++) {
-    arr.push(i)
-  }
-
-  $('#pagination').pagination({
-    dataSource: arr,
-    pageSize: Number('{{rowsPerPage}}'),
-    showGoInput: true,
-    showGoButton: true,
-  
-    callback: function(data, pagination) {
-      url = 'http://127.0.0.1:8000/api/{{table_name}}?page=' + pagination.pageNumber
-      create_Table(url)
-  
-      var myTable = document.getElementById("myTable");
-      if (myTable != null) myTable.parentNode.removeChild(myTable);
+  var t_start = document.getElementById('t_start');
+  var b_end = document.getElementById('b_end');
+  document.getElementById('t_start').addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) {
+      new_pag();
     }
-  })
+  });
+  document.getElementById('b_end').addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) {
+      new_pag();
+    }
+  });
+  var new_value_t;
+  if(t_start.value == '') new_value_t = 0;
+  else new_value_t = t_start.value;
+  function new_pag(){
+    var start_end = '';
+    if (b_end.value != '') {start_end = '&min_md=' + new_value_t + '&max_md=' + b_end.value;}
+    else {start_end = '&min_md=' + new_value_t;}
+    check_tail_link(start_end)
+  }
+  new_pag()
+
+  function check_tail_link(tail){
+    console.log(tail);
+    fetch('http://127.0.0.1:8000/api/pivot_table/{{well_id}}?page=1&' + tail, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'bearer {{token}}',
+            'login_user': '{{token}}'
+        }
+      })
+    .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        var count = (data['count_rows'])
+        var arr = []
+        for (let i = 0; i < count; i++) {
+          arr.push(i)
+        }
+
+        const regex = /\d/;
+        if (regex.test(tail) == false) tail = ''
+        $('#pagination').pagination({
+          dataSource: arr,
+          pageSize: Number('{{rowsPerPage}}'),
+          showGoInput: true,
+          showGoButton: true,
+        
+          callback: function(data, pagination) {
+            var url = 'http://127.0.0.1:8000/api/pivot_table/{{well_id}}?page=' + pagination.pageNumber + tail;
+            create_Table(url)
+            var myTable = document.getElementById("myTable");
+            if (myTable != null) myTable.parentNode.removeChild(myTable);
+          }
+        })
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+  }
+  
   </script>
 
 <!-- <script>
@@ -713,17 +851,7 @@
   }
 </script>
 
-<script>
-  function showContent(x) {
-    var myElement = document.getElementById(""+x);
-    var myButton = document.getElementById("show_" + x);
-    if (myElement.style.display === "none") {
-      myElement.style.display = "";
-    } else {
-      myElement.style.display = "none";
-    }
-  }
-</script>
+
 <script>
   function editRow(button) {
     var row = button.parentNode.parentNode; // lấy dòng chứa nút "Sửa"
@@ -763,7 +891,6 @@
       return response.json();
     })
     .then((data) => {
-      console.log(data);
       alert("Object deleted successfully!");
     })
     .catch((error) => {
@@ -786,8 +913,7 @@
       }
       arr = arr.slice(0,-1);
       if(arr.length < 1) alert('Please select column')
-      else window.location="http://127.0.0.1:8000/api/export/{{table_name}}/" + arr;
-      console.log(arr)
+      else window.location="http://127.0.0.1:8000/api/export/cal_curve_value/" + arr;
   }
 </script>
 
@@ -796,7 +922,7 @@
   function getTable(){
     window.location="http://127.0.0.1:8000/api/tables/" + input.value;
   }
-  input.value = '{{table_name}}'
+
   input.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) {
       getTable();

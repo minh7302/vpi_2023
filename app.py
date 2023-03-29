@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from pyparsing import Optional
 import uvicorn
 from db_connect import engine, Session, get_db, metadata, Base
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Depends
+from fastapi import FastAPI, Form, HTTPException, Query, UploadFile, File, Depends
 from sqlalchemy.orm import sessionmaker, mapper
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, distinct,select, and_
 from sqlalchemy.ext.declarative import declarative_base
@@ -22,19 +22,23 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import csv
-from api.auth import PER, PerMission, allow_admin_roles, allow_datamanager_roles, allow_reviewer_roles, login_user
+import csv, json
 import requests
-from api import auth
 # Base = declarative_base()
 metadata = MetaData(bind=engine)
 import io
 from fastapi import FastAPI, Response
+import numpy as np
+from api.auth import PER, PerMission, allow_admin_roles, allow_datamanager_roles, allow_reviewer_roles, login_user
+from api import auth
+from starlette.middleware.sessions import SessionMiddleware
 
 app = FastAPI()
 class Item(BaseModel):
     columns: dict
 
+app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth.routes)
 
 # Điều chỉnh cấu hình CORS
@@ -59,42 +63,106 @@ app.add_middleware(
 #     password : str
 #     role : str
 templates = Jinja2Templates(directory='templates')
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get('/')
-async def login(request: Request):
-    if request.method == 'POST':
-        form = await request.form()
-        username = form['username']
-        password = form['password']
-        print(username)
-    return templates.TemplateResponse('login.html', {'request': request})
-
-@app.get('/home')
-def home(request : Request):
-    return templates.TemplateResponse('home.html', {'request':request})
-
-@app.get("/api/tables/{table_name}")
-def main(request: Request, table_name: str, rowsPerPage: int = 30):
-    form = {
-        'username': 'superadmin',
-        'password': 'abc123'
-    }
-    response = requests.post('http://127.0.0.1:8000/auth/token', data=form)
-    token = response.json()
+@app.get("/")
+async def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+@app.post("/home")
+async def login(request: Request, token: str = Form(...)):
     session = Session()
-    count_rows = session.execute(f"SELECT count(*) FROM public.{table_name}").fetchall()
+    list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
+    session.close()
+    request.session['token'] = token
+    return templates.TemplateResponse('home.html', {"request": request, 'list_tables':list_tables})
+
+@app.get('/logout')
+async def login_form(request: Request):
+    request.session.pop('token')
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/api/cal_curve_value/{value}")
+def get_data_cal_curve_value(value: str, page: int = 1, rowsPerPage: int = 30):
+    # Lấy dữ liệu từ bảng
+    session = Session()
+    count_curve = session.execute(f"select count(distinct curve_id) from cal_curve_value where well_id like '{value}'").fetchall()
     session.close()
     session = Session()
-    data = session.execute(f"SELECT * FROM public.{table_name}").fetchall()
+    count_rows = session.execute(f"select count(*) from cal_curve_value where well_id like '{value}'").fetchall()
+    session.close()
+    rowsPerPage = rowsPerPage * (count_curve[0])[0]
+    table = Table('cal_curve_value', metadata, autoload=True, autoload_with=engine)
+    start = (page - 1) * rowsPerPage
+    end = page * rowsPerPage
+    query = select([table]).where(getattr(table.c, 'well_id') == value).order_by(table.c.md).offset(start).limit(end - start)
+    results = engine.execute(query).fetchall()
+    data = []
+    for row in results:
+        row_dict = {}
+        for col in row.keys():
+            row_dict[col] = row[col]
+        data.append(row_dict)
+    new_data = {
+        'records': data,
+        'count_rows': int((count_rows[0])[0] / (count_curve[0])[0])
+    }
+    return new_data
+
+@app.get('/api/pivot_table/{well_id}', dependencies=[Depends(login_user)])
+def pivot_table_1(well_id: str, min_md: float = None, max_md: float = None, page: int = 1, page_size: int = 30):
+    # Lấy dữ liệu từ API
+    df = requests.get(f"http://127.0.0.1:8000/api/cal_curve_value/{well_id}?page={page}&rowsPerPage={page_size}")
+    df = df.json()
+    temp = df['records']
+    count_rows = df['count_rows']
+    if min_md < (temp[0])['md'] : min_md = (temp[0])['md']
+    count_rows = int(count_rows - min_md + (temp[0])['md'])
+    if max_md != None: count_rows = max_md - min_md
+    # Tạo dataframe và xóa các giá trị trùng lặp
+    df = pd.DataFrame(temp)
+    df = df.drop_duplicates(subset=['md', 'curve_id'])
+    
+    # Chọn các giá trị trong khoảng từ min_md đến max_md (nếu có)
+    if min_md is not None:
+        df = df[df['md'] >= min_md]
+        if max_md is not None:
+            df = df[df['md'] <= max_md]
+    
+    # Chọn các cột để xoay bảng
+    columns = ['md', 'curve_id', 'cal_value']
+
+    # Xoay bảng
+    df = df[columns].pivot(index='md', columns='curve_id', values='cal_value')
+
+    # Thay thế giá trị NaN bằng 0
+    df = df.replace(np.nan, 0)
+    # Chuyển đổi dataframe thành danh sách các đối tượng JSON
+    json_list = []
+    for index, row in df.iterrows():
+        json_obj = {"md": index}
+        for col in df.columns:
+            json_obj[col] = row[col]
+        json_list.append(json_obj)
+    new_data = {
+        'records': json_list,
+        'count_rows': count_rows
+    }
+    return new_data
+
+@app.get("/api/tables/{well_id}")
+def main(request: Request, well_id: str, rowsPerPage: int = 30):
+    session = Session()
+    count_curve = session.execute(f"select count(distinct curve_id) from cal_curve_value where well_id like '{well_id}'").fetchall()
+    session.close()
+    session = Session()
+    data = session.execute(f"select * from cal_curve_value").fetchall()
     session.close()
     keys = data[0].keys()
     session = Session()
     list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
     session.close()
-    return templates.TemplateResponse('home.html', {'request': request, 'count_rows':(count_rows[0])[0], 'rowsPerPage':rowsPerPage, 
-                                                      'table_name':table_name, 'keys':keys, 'data':data, 'list_tables':list_tables,
-                                                      'token' : token})
+    token = request.session['token']
+    return templates.TemplateResponse('home.html', {'request': request, 'rowsPerPage':rowsPerPage, 'token' : token,
+                                                      'well_id':well_id, 'keys':keys, 'data':data, 'list_tables':list_tables})
 
 @app.put("/api/update/{table_name}/{record_id}")
 async def update_data(table_name: str, record_id: int, data: dict):
@@ -193,29 +261,41 @@ async def export_column_data(table_name: str, columns: str):
         query = f"SELECT {', '.join(column_list)} FROM {table_name}"
         result = conn.execute(query).fetchall()
     
-    # tạo dataframe từ dữ liệu cột
-    df = pd.DataFrame(result, columns=column_list)
-    
-    # tạo file CSV từ dataframe
+    # tạo file CSV từ dữ liệu cột
     buffer = io.StringIO()
-    df.to_csv(buffer, index=False)
+    writer = csv.writer(buffer)
+    writer.writerow(column_list)
+    for row in result:
+        writer.writerow(row)
     buffer.seek(0)
     
     # trả về file CSV cho người dùng
-    return StreamingResponse(buffer, media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={table_name}.csv"})
+    content = buffer.getvalue().encode("utf-8")
+    headers = {
+        "Content-Disposition": f"attachment; filename={table_name}.csv",
+        "Content-Type": "text/csv",
+        "Content-Length": str(len(content)),
+    }
+    return Response(content=content, headers=headers)
 
     
     
     
+from tempfile import NamedTemporaryFile
+
 @app.post("/api/import/{table_name}")
 async def import_data(table_name: str, file: UploadFile = File(...)):
     # Kiểm tra bảng có tồn tại trong CSDL hay không
     if not engine.has_table(table_name):
-        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+        raise HTTPException(status_code=404, detail=f"Table c'{table_name}' not found")
         
-    # Đọc tập tin CSV và chuyển đổi thành dataframe
-    df = pd.read_csv(file.file)
-    
+    # Lưu file vào bộ nhớ tạm
+    with NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp.flush()
+        tmp.seek(0)
+        df = pd.read_csv(tmp)
+        
     # Thêm dữ liệu từ dataframe vào bảng đã có sẵn
     df.to_sql(table_name, engine, if_exists='append', index=False)
     
@@ -238,13 +318,9 @@ def get_data(table_name: str, field_name: str, field_value: str):
         for col in row.keys():
             row_dict[col] = row[col]
         data.append(row_dict)
-
     return data
 
-
-
-
-@app.get("/api/{table_name}", dependencies=[Depends(login_user)])
+@app.get("/api/{table_name}")
 async def get_items(table_name: str, db : Session = Depends(get_db), page: int = 1, rowsPerPage: int = 30) -> List[dict]:
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)
@@ -255,7 +331,6 @@ async def get_items(table_name: str, db : Session = Depends(get_db), page: int =
     rows = db.execute(stmt)
     # Trả về kết quả dưới dạng list các dict
     return [dict(row) for row in rows]
-
 
 # def main(request: Request):
 #     return templates.TemplateResponse('index.html', {'request': request})
@@ -280,6 +355,39 @@ async def get_unique_column_values(table_name: str, column_name: str) -> List[st
 @app.get("/import_table")
 def home(request : Request):
     return templates.TemplateResponse('import_file.html', {'request':request})
+
+
+
+
+# APi chọn giá trị duy nhất trong từng bảng theo curve_id 
+@app.get("/api/unique_curve_ids/{well_id}")
+async def get_unique_curve_ids(well_id: str):
+    # Lấy danh sách các giá trị duy nhất của trường curve_id dựa trên well_id
+    query = f"SELECT DISTINCT curve_id FROM cal_curve_value WHERE well_id = '{well_id}'"
+    with engine.connect() as conn:
+        rows = conn.execute(query).fetchall()
+
+    # Chuyển kết quả từ tuple sang list
+    result = [row[0] for row in rows]
+
+    return result
+
+# Viết API lấy curve_id phụ thuộc vào well_id 
+@app.get("/api/get_data/cal_curve_value/well_id/{well_id}/{curve_id}")
+def get_cal_curve_data(well_id: str, curve_id: str):
+    # Lấy dữ liệu từ bảng cal_curve_value với điều kiện well_id và curve_id
+    table = Table("cal_curve_value", metadata, autoload=True, autoload_with=engine)
+    query = select([table]).where(and_(table.c.well_id == well_id, table.c.curve_id == curve_id))
+    results = engine.execute(query).fetchall()
+    # Chuyển kết quả thành dạng dictionary
+    data = []
+    for row in results:
+        row_dict = {}
+        for col in row.keys():
+            row_dict[col] = row[col]
+        data.append(row_dict)
+    return data
+
 
 if __name__ == '__main__':
     uvicorn.run("app:app", reload=True)

@@ -21,7 +21,7 @@
 	<div class="limiter">
 		<div class="container-login100">
 			<div class="wrap-login100">
-				<form action="/http://127.0.0.1:8000/home" class="login" >
+				<form class="login" action="/home" method="post">
 					<span class="login100-form-title p-b-26">
 						Welcome
 					</span>
@@ -39,6 +39,7 @@
 							</button>
 						</div>
 					</div>
+					<input type="hidden" id="token" name="token">
 				</form>
 			</div>
 		</div>
@@ -46,3 +47,40 @@
 
 </body>
 </html>
+
+<script>
+    const form = document.querySelector('.login');
+
+    form.addEventListener('submit', function(event) {
+		event.preventDefault(); // Ngăn chặn sự kiện mặc định của form
+
+		const username = document.getElementById('username').value;
+		const password = document.getElementById('password').value;
+		const token = document.getElementById('token').value;
+		
+		// Gửi request đăng nhập lên server
+		fetch('http://127.0.0.1:8000/auth/token', {
+			method: 'POST',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: `username=${username}&password=${password}`
+		})
+		.then(response => response.json())
+		.then(data => {
+			// Xử lý kết quả trả về khi đăng nhập thành công
+			if (!data.access_token) {
+				alert("Vui lòng kiểm tra lại tài khoản, mật khẩu");
+			} else {
+				document.getElementById('token').value = data.access_token;
+				// Submit form để gửi token lên server và xác thực đăng nhập
+				form.submit();
+			}
+		})
+		.catch(function(error) {
+			// Xử lý kết quả trả về khi đăng nhập thất bại
+			console.log(error.response.data);
+		});
+	});
+  </script>
