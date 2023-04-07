@@ -9,345 +9,7 @@
   <script src="https://kit.fontawesome.com/abdc579eb6.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paginationjs/2.1.5/pagination.min.js"></script>
-  <!-- <link rel="stylesheet" href="/static/jquery.dataTables.min.css">
-  <script src="/static/jquery-3.5.1.js"></script>
-  <script src="/static/jquery.dataTables.min.js"></script> -->
-  <style>
-    body {
-      margin: 0;
-    }
-
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-
-    :root {
-      --accent-color: rgb(204, 0, 0);
-      --lightest-gray: rgb(244, 244, 244);
-      --light-gray: rgb(144, 144, 144);
-      --medium-gray: rgb(96, 96, 96);
-      --dark-gray: rgb(13, 13, 13);
-      --header-height: 50px;
-      --animation-duration: 200ms;
-      --animation-timing-curve: ease-in-out;
-    }
-    a {
-      text-decoration: none;
-    }
-    button {
-      cursor: pointer;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      background-color: white;
-      box-shadow: 0 1px 10px 0 rgba(0, 0, 0, .4);
-      padding: 12px;
-      height: var(--header-height);
-      z-index: 10;
-    }
-    .header-right {
-      display: flex;
-      justify-content: space-around;
-      width: 30%;
-    }
-    .notification .badge {
-      position: relative;
-      top: -17px;
-      padding: 5px 10px;
-      border-radius: 50%;
-      background-color: red;
-      color: white;
-      font-size: 10px;
-    }
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: #f9f9f9;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-    }
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-    }
-    .dropdown .dropdown-content a:hover{
-      background-color: rgb(221,221,221);
-    }
-    .header a:hover {
-      background-color: var(--lightest-gray);
-    }
-    .dropdown:hover .dropdown-content {
-      display: block;
-    }
-    .menu-icon-btn {
-      background: none;
-      border: none;
-      float: left;
-    }
-
-    .menu-icon {
-      width: 25px;
-      height: 25px;
-      fill: var(--medium-gray);
-      cursor: pointer;
-    }
-
-    .menu-icon:hover {
-      fill: black;
-    }
-
-    .sidebar {
-      flex-shrink: 0;
-      overflow: hidden;
-      width: 75px;
-      border-right: 1px solid var(--light-gray);
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - var(--header-height));
-      padding-top: 1rem;
-      align-items: center;
-      justify-content: stretch;
-      transition: width var(--animation-duration) var(--animation-timing-curve);
-      position: sticky;
-      left: 0;
-      top: var(--header-height);
-      z-index: 10;
-      background-color: white;
-    }
-
-    .sidebar .hidden-sidebar {
-      opacity: 0;
-      width: 0;
-      transition: opacity var(--animation-duration) var(--animation-timing-curve);
-    }
-
-    .sidebar.open .hidden-sidebar {
-      width: 100%;
-      height: auto;
-      opacity: 1;
-    }
-
-    .sidebar .channel-logo {
-      display: block;
-      width: 30px;
-      height: 30px;
-      transition: var(--animation-duration) var(--animation-timing-curve);
-    }
-
-    .sidebar.open .channel-logo {
-      width: 90px;
-      height: 90px;
-    }
-
-    .sidebar .channel-logo > img {
-      width: 100%;
-      height: 100%;
-    }
-
-    .middle-sidebar {
-      overflow-y: auto;
-      overflow-x: hidden;
-      flex-grow: 1;
-      margin: 1rem 0;
-    }
-
-    .middle-sidebar,
-    .bottom-sidebar {
-      width: 100%;
-    }
-
-    .sidebar-list {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      list-style: none;
-    }
-
-    .sidebar.open .sidebar-link {
-      justify-content: flex-start;
-    }
-
-    .sidebar-icon {
-      width: 25px;
-      height: 25px;
-      flex-shrink: 0;
-    }
-
-    .sidebar-list .hidden-sidebar {
-      margin-left: 1.5rem;
-      white-space: nowrap;
-    }
-
-    .sidebar-link {
-      display: flex;
-      width: 100%;
-      padding: .5rem 0;
-      color: var(--light-gray);
-      text-decoration: none;
-      align-items: center;
-      padding-left: 25px;
-    }
-
-    .sidebar-list-item {
-      position: relative;
-      width: 100%;
-      fill: var(--light-gray);
-    }
-
-
-    .sidebar-list-item:hover {
-      background-color: var(--lightest-gray);
-    }
-
-    .sidebar.open {
-      width: 200px;
-    }
-
-    .sidebar .top-sidebar {
-      height: 30px;
-      transition: height var(--animation-duration) var(--animation-timing-curve);
-    }
-
-    .sidebar.open .top-sidebar {
-      height: 125px;
-    }
-
-    .filter-input {
-      padding: 0.5em;
-      border: none;
-      border-radius: 5px;
-      font-size: 1.2em;
-      width: 60%;
-      margin-bottom: 10px;
-    }
-
-    .filter-button {
-      padding: 0.5em 1em;
-      border: none;
-      border-radius: 5px;
-      background-color: blue;
-      color: white;
-      font-size: 1.2em;
-    }
-    #example th {
-      padding-top: 12px;
-      padding-bottom: 12px;
-      text-align: left;
-      background-color: rgb(0,170,254);
-      color: white;
-      text-align: center;
-    }
-    .hidden {
-      display: none;
-    }
-    .beauty-button {
-      background-color: #f8f8f8;
-      border: none;
-      color: #333;
-      padding: 5px 10px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      border-radius: 5px;
-      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease-in-out;
-    }
-
-    .beauty-button:hover {
-      background-color: #333;
-      color: #f8f8f8;
-      cursor: pointer;
-      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-    }
-    #myTable th {
-      padding-top: 12px;
-      padding-bottom: 12px;
-      text-align: left;
-      background-color: rgb(0,170,255);
-      color: white;
-    }
-    #myTable tr:nth-child(even){background-color: #f2f2f2;}
-
-    #myTable tr:hover {background-color: #ddd;}
-
-    #myTable {
-      font-family: Arial, Helvetica, sans-serif;
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    #myTable td, #myTable th {
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-    .paginationjs {
-      display: flex;
-      justify-content: flex-end;
-    }
-    .paginationjs-go-input, .paginationjs-go-button {
-      display: grid;
-      place-items: center;
-    }
-    .paginationjs-go-input input{
-      width: 30px;
-      height: 30px;
-      margin-left: 5px;
-    }
-    .paginationjs-go-button input{
-      margin-left: 5px;
-      background-color: rgb(4,169,254);
-      border: none;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      border-radius: 25%;
-      color: white;
-      font-size: 18px;
-    }
-    .paginationjs-pages ul{
-      display: flex;
-    }
-    .paginationjs-pages ul li:not(.paginationjs-ellipsis){
-      display: grid;
-      place-items: center;
-      list-style: none;
-      margin: 3px;
-      padding: 5px;
-      border: 1px solid gray;
-      box-sizing: border-box;
-      cursor: pointer;
-      background-color: rgb(242, 242, 242);
-    }
-    .paginationjs-ellipsis {
-      display: grid;
-      place-items: center;
-      list-style: none;
-    }
-    .paginationjs-pages ul li:hover{
-      background-color: rgb(197, 197, 197);
-    }
-    .content {
-      width: 100%;
-    }
-    .content_bottom {
-      display: flex;
-      justify-content: center;
-      width: 50vh;
-    }
-    #table {
-      display: grid;
-      place-content: center;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <header class="header">
@@ -392,6 +54,7 @@
           </li>
           <li class="sidebar-list-item">
             <a onclick="import_tab()" class="sidebar-link">
+              <!--mở 1 tab mới để import file-->
               <script>
                 function import_tab() {
                   window.open("http://127.0.0.1:8000/import_table");
@@ -410,7 +73,7 @@
           </li>
           {% for i in list_tables%}
           <li class="sidebar-list-item">
-            <a href="http://127.0.0.1:8000/api/tables/{{i[0]}}" class="sidebar-link" style="margin-left: 2rem;">
+            <a href="http://127.0.0.1:8000/tables/{{i[0]}}" class="sidebar-link" style="margin-left: 2rem;">
               <div class="hidden-sidebar" style="color: rgb(2,131,198);">{{i[0]}}</div>
             </a>
           </li>
@@ -425,30 +88,6 @@
             <a href="#" class="sidebar-link">
               <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="sidebar-icon"><g><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 12h4v2H4v-2zm10 6H4v-2h10v2zm6 0h-4v-2h4v2zm0-4H10v-2h10v2z"></path></g></svg>
               <div class="hidden-sidebar">Subtitles</div>
-            </a>
-          </li>
-          <li class="sidebar-list-item">
-            <a href="#" class="sidebar-link">
-              <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="sidebar-icon"><g><path d="M10.08 10.86c.05-.33.16-.62.3-.87s.34-.46.59-.62c.24-.15.54-.22.91-.23.23.01.44.05.63.13.2.09.38.21.52.36s.25.33.34.53.13.42.14.64h1.79c-.02-.47-.11-.9-.28-1.29s-.4-.73-.7-1.01-.66-.5-1.08-.66-.88-.23-1.39-.23c-.65 0-1.22.11-1.7.34s-.88.53-1.2.92-.56.84-.71 1.36S8 11.29 8 11.87v.27c0 .58.08 1.12.23 1.64s.39.97.71 1.35.72.69 1.2.91 1.05.34 1.7.34c.47 0 .91-.08 1.32-.23s.77-.36 1.08-.63.56-.58.74-.94.29-.74.3-1.15h-1.79c-.01.21-.06.4-.15.58s-.21.33-.36.46-.32.23-.52.3c-.19.07-.39.09-.6.1-.36-.01-.66-.08-.89-.23-.25-.16-.45-.37-.59-.62s-.25-.55-.3-.88-.08-.67-.08-1v-.27c0-.35.03-.68.08-1.01zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></g></svg>
-              <div class="hidden-sidebar">Copyright</div>
-            </a>
-          </li>
-          <li class="sidebar-list-item">
-            <a href="#" class="sidebar-link">
-              <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="sidebar-icon"><g><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"></path></g></svg>
-              <div class="hidden-sidebar">Monetization</div>
-            </a>
-          </li>
-          <li class="sidebar-list-item">
-            <a href="#" class="sidebar-link">
-              <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="sidebar-icon"><g><path d="M0 0h24v24H0z" fill="none"></path><path d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.03 5.49l-2.12-2.12 2.44-2.44 2.12 2.12-2.44 2.44z"></path></g></svg>
-              <div class="hidden-sidebar">Customization</div>
-            </a>
-          </li>
-          <li class="sidebar-list-item">
-            <a href="#" class="sidebar-link">
-              <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="sidebar-icon"><g><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4v2zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"></path></g></svg>
-              <div class="hidden-sidebar">Audio Library</div>
             </a>
           </li> -->
         </ul>
@@ -471,23 +110,7 @@
       </div>
     </aside>
 
-
-
-
-
-
-
     <main class="content" style="margin: 1rem; width: 100%; ">
-      <!-- {%if keys != null%}
-      <div class="option" style="display: flex; justify-content: space-around; margin-bottom: 1rem;">
-        <button id="show_filter" class="beauty-button" onclick="showContent('filter')">FILTER</button>
-      </div>
-      {%endif%}
-
-      <div id="filter" style="display: none;">
-        <input type="text" class="filter-input" placeholder="Enter your queries"/>
-        <button class="filter-button">Filter</button>
-      </div> -->
       <div class="content_top" style="display: flex; justify-content: center; background-color: rgb(248,249,250); margin-bottom: 1rem;">
         <div class="t-left" style="display: flex; justify-content: center;flex-direction: column; width: 70%;">
           <div style="display: flex; justify-content: space-around; margin-bottom: 5px;">
@@ -534,6 +157,7 @@
             </div>
             <div style="display: flex;">
               <button id="show_add_row" class="beauty-button" onclick="showContent()"> Thêm 1 bản ghi</button>
+              <!--Ẩn/Hiện thẻ add_row khi click button trên-->
               <script>
                 function showContent() {
                   var myElement = document.getElementById('add_row');
@@ -549,6 +173,7 @@
               </script>
               <button id="hide-column-button" class="beauty-button" style="margin-left: 1rem;">Sửa</button>
               <button class="beauty-button" style="margin-left: 1rem;" onclick="deleteTable('{{well_id}}')">Xoá {{well_id}}</button>
+              <!--Xoá dữ liệu bảng hiện tại đang truy cập-->
               <script>
                 function deleteTable(well_id) {
                   fetch (`http://127.0.0.1:8000/api/delete/cal_curve_value/well_id/${well_id}`, {
@@ -590,11 +215,13 @@
           </tr>
         </table>
         
+        <!--Thêm 1 hàng dữ liệu trong bảng cal_curve_value trên databases-->
         <script>
           function add_row_funct() {
             var data = {};
             var keys = ['record_id','curve_id','md','cal_value','well_id','file_id','create_uid','create_time','write_uid','write_time']
             var important = ['md', 'cal_value','file_id','well_id']
+            // Kiểm tra các phần tử có tên trong important có trống hay không, nếu có thì data = {}
             keys.forEach(function(key) {
                 var value = document.getElementById(key).value;
                 if (important.includes(key) && value == '') {
@@ -631,26 +258,9 @@
             {%endif%}
           </div>
           {%if keys != null%}
-          <div class="visualization">
+          <!-- <div class="visualization">
             <iframe id='dash_html' src="http://127.0.0.1:8050" height="94.5%"></iframe>
-            <script>
-              // Lấy tham chiếu tới iframe
-              const iframe = document.getElementById('dash_html');
-            
-              // Chờ cho Dash app load hoàn tất
-              iframe.addEventListener('load', () => {
-                // Lấy tham chiếu tới đối tượng `dcc.Input`
-                const input = iframe.contentWindow.document.getElementById('well_id');
-            
-                // Truyền giá trị mới vào `dcc.Input`
-                input.value = 'A10';
-            
-                // Gọi đến Dash callback để cập nhật giá trị
-                const dashCallback = iframe.contentWindow.dash_callback;
-                dashCallback('input-value', 'value', 'A10');
-              });
-            </script>
-          </div>
+          </div> -->
           {%endif%}
         </div>
       </div>
@@ -660,7 +270,11 @@
 </html>
 
 <script>
+  // Đây là đoạn mã JavaScript được viết để lấy dữ liệu từ một API và tạo một bảng trong HTML dựa trên dữ liệu đó. 
+  // Khi hàm "create_Table" được gọi với một tham số là địa chỉ URL của API, nó sẽ sử dụng phương thức "fetch" để gửi yêu cầu GET đến địa chỉ đó và trả về một đối tượng JSON chứa dữ liệu. 
+  // Sau đó, dữ liệu được xử lý và sắp xếp thành một bảng HTML bằng cách sử dụng các thẻ HTML như "table", "thead", "tbody", "tr", "th", và "td".
   function create_Table(url) {
+    // Lấy dữ liệu
     fetch(url , {
         method: 'GET',
         headers: {
@@ -674,7 +288,7 @@
         data = data['records']
         var table = document.createElement("table");
         table.setAttribute("id", "myTable");
-  
+        // Tạo bảng và các thành phần của bảng
         //tạo tên cột
         var thead = document.createElement("thead");
         table.appendChild(thead);
@@ -716,8 +330,8 @@
           cell.appendChild(editBtn);
           cell.appendChild(deleteBtn);
         }
+
         // Thêm bảng vào DOM
-  
         document.querySelector("#table").appendChild(table);
         var hideColumnButton = document.getElementById("hide-column-button");
         var columnToHide = document.querySelectorAll(".hide_show");
@@ -738,6 +352,8 @@
             column.classList.add("hidden");
           }
         });
+
+        // tính toán chiều cao của bảng và áp dụng nó cho phần tử khác trong HTML.
           var h_table = document.getElementById('myTable').clientHeight;
           var h_dash = document.getElementById('dash_html');
           h_dash.style.height = `${h_table}`;
@@ -745,8 +361,14 @@
       .catch(function(error) {
         console.log(error);
       });
-  }
+  }  
+</script>
 
+<!--tạo ra phân trang cho một bảng dữ liệu và gọi các API tương ứng. 
+  Nó sử dụng phương thức fetch để gửi một yêu cầu API đến một địa chỉ cụ thể (được chỉ định trong đoạn mã) để lấy dữ liệu. 
+  Sau đó, nó sử dụng các phương thức callback để xử lý dữ liệu trả về và hiển thị phân trang cho bảng dữ liệu. 
+  Các giá trị đầu vào của bảng dữ liệu (như độ sâu bắt đầu và kết thúc) được lấy từ các phần tử HTML trong trang web.-->
+<script>
   var t_start = document.getElementById('t_start');
   var b_end = document.getElementById('b_end');
   document.getElementById('t_start').addEventListener("keyup", function(event) {
@@ -766,11 +388,12 @@
     var start_end = '';
     if (b_end.value != '') {start_end = '&min_md=' + new_value_t + '&max_md=' + b_end.value;}
     else {start_end = '&min_md=' + new_value_t;}
-    check_tail_link(start_end)
+    apiNew_pagination(start_end)
   }
-  new_pag()
+  new_pag() // Lấy String chứa độ sâu bắt đầu và độ sâu kết thúc của bảng
 
-  function check_tail_link(tail){
+  //thực hiện tạo phân trang và các api tương ứng
+  function apiNew_pagination(tail){
     console.log(tail);
     fetch('http://127.0.0.1:8000/api/pivot_table/{{well_id}}?page=1&' + tail, {
         method: 'GET',
@@ -809,39 +432,9 @@
         console.log(error);
       });
   }
-  
-  </script>
+</script>
 
-<!-- <script>
-  const url = "http://127.0.0.1:8000/api/{{table_name}}";
-  option_list = [20,30,50]
-  const currentUrl = window.location.href;
-  function redirectToPage() {
-    var selectElement = document.getElementById("mySelect");
-    var selectedValue = selectElement.value;
-    if (selectedValue) {
-      if (currentUrl.split('page=').length < 2) {
-        window.location.assign(url + '?rowsPerPage=' + selectedValue);
-      } else {
-        current_page = 'page=' + currentUrl.split('page=')[1]
-        window.location.assign(url + '?rowsPerPage=' + selectedValue + '&' + current_page);
-      }
-      localStorage.setItem("selectedOption", selectedValue);
-    }
-    
-  }
-  const selectedOption = localStorage.getItem("selectedOption");
-  const select = document.getElementById("mySelect");
-  for (let option of select.options) {
-    if (option.value === selectedOption) {
-      option.selected = true;
-      break;
-    }
-  }
-  localStorage.removeItem("selectedOption")
-</script> -->
-
-
+<!--Tự động tích các checkbox còn lại khi nhấn vào checkbox all-->
 <script>
   function toggle(source) {
       var checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -851,7 +444,7 @@
   }
 </script>
 
-
+<!--Update dòng được chọn-->
 <script>
   function editRow(button) {
     var row = button.parentNode.parentNode; // lấy dòng chứa nút "Sửa"
@@ -875,7 +468,7 @@
 
 
   }
-  
+  // Xoá dòng được chọn
   function deleteRow(button) {
     var row = button.parentNode.parentNode; // lấy dòng chứa nút "Xóa"
     var record_id = row.cells[0].innerHTML
@@ -901,6 +494,7 @@
   }
   </script>
 
+<!--Export các cột được chọn trong cal_curve_value-->
 <script>
   function Redirect() {
       var arr = '';
@@ -917,10 +511,11 @@
   }
 </script>
 
+<!--Nhập tên bảng muốn xem và chuyển đến bảng vừa nhập-->
 <script>
   var input = document.getElementById('name_input');
   function getTable(){
-    window.location="http://127.0.0.1:8000/api/tables/" + input.value;
+    window.location="http://127.0.0.1:8000/tables/" + input.value;
   }
 
   input.addEventListener("keyup", function(event) {

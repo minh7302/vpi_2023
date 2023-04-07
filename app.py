@@ -24,14 +24,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import csv, json
 import requests
+from tempfile import NamedTemporaryFile
+import pandas as pd
 # Base = declarative_base()
-metadata = MetaData(bind=engine)
 import io
 from fastapi import FastAPI, Response
 import numpy as np
 from api.auth import PER, PerMission, allow_admin_roles, allow_datamanager_roles, allow_reviewer_roles, login_user
 from api import auth
 from starlette.middleware.sessions import SessionMiddleware
+
+metadata = MetaData(bind=engine)
 
 app = FastAPI()
 class Item(BaseModel):
@@ -80,6 +83,24 @@ async def login_form(request: Request):
     request.session.pop('token')
     return templates.TemplateResponse("login.html", {"request": request})
 
+#render về home.html
+@app.get("/tables/{well_id}")
+def main(request: Request, well_id: str, rowsPerPage: int = 30):
+    session = Session()
+    count_curve = session.execute(f"select count(distinct curve_id) from cal_curve_value where well_id like '{well_id}'").fetchall()
+    session.close()
+    session = Session()
+    data = session.execute(f"select * from cal_curve_value").fetchall()
+    session.close()
+    keys = data[0].keys()
+    session = Session()
+    list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
+    session.close()
+    token = request.session['token']
+    return templates.TemplateResponse('home.html', {'request': request, 'rowsPerPage':rowsPerPage, 'token' : token,
+                                                      'well_id':well_id, 'keys':keys, 'data':data, 'list_tables':list_tables})
+
+#lấy dữ liệu trong bảng cal_curve_value có cur_id = value (A10,A15)
 @app.get("/api/cal_curve_value/{value}")
 def get_data_cal_curve_value(value: str, page: int = 1, rowsPerPage: int = 30):
     # Lấy dữ liệu từ bảng
@@ -107,6 +128,7 @@ def get_data_cal_curve_value(value: str, page: int = 1, rowsPerPage: int = 30):
     }
     return new_data
 
+#Lấy dữ liệu từ API trên, xoay dữ liệu 
 @app.get('/api/pivot_table/{well_id}', dependencies=[Depends(login_user)])
 def pivot_table_1(well_id: str, min_md: float = None, max_md: float = None, page: int = 1, page_size: int = 30):
     # Lấy dữ liệu từ API
@@ -148,21 +170,6 @@ def pivot_table_1(well_id: str, min_md: float = None, max_md: float = None, page
     }
     return new_data
 
-@app.get("/api/tables/{well_id}")
-def main(request: Request, well_id: str, rowsPerPage: int = 30):
-    session = Session()
-    count_curve = session.execute(f"select count(distinct curve_id) from cal_curve_value where well_id like '{well_id}'").fetchall()
-    session.close()
-    session = Session()
-    data = session.execute(f"select * from cal_curve_value").fetchall()
-    session.close()
-    keys = data[0].keys()
-    session = Session()
-    list_tables = session.execute(f"SELECT distinct well_id FROM public.cal_curve_value").fetchall()
-    session.close()
-    token = request.session['token']
-    return templates.TemplateResponse('home.html', {'request': request, 'rowsPerPage':rowsPerPage, 'token' : token,
-                                                      'well_id':well_id, 'keys':keys, 'data':data, 'list_tables':list_tables})
 
 @app.put("/api/update/{table_name}/{record_id}")
 async def update_data(table_name: str, record_id: int, data: dict):
@@ -278,10 +285,6 @@ async def export_column_data(table_name: str, columns: str):
     }
     return Response(content=content, headers=headers)
 
-    
-    
-    
-from tempfile import NamedTemporaryFile
 
 @app.post("/api/import/{table_name}")
 async def import_data(table_name: str, file: UploadFile = File(...)):
@@ -294,13 +297,25 @@ async def import_data(table_name: str, file: UploadFile = File(...)):
         tmp.write(await file.read())
         tmp.flush()
         tmp.seek(0)
-        df = pd.read_csv(tmp)
+        df_new = pd.read_csv(tmp)
         
+    # Lấy dữ liệu từ bảng đã có sẵn
+    df_old = pd.read_sql_table(table_name, engine)
+    
+    # Ghép dữ liệu mới và cũ lại với nhau để kiểm tra trùng lặp
+    df_merged = pd.concat([df_old, df_new], axis=0)
+    
+    # Kiểm tra trùng lặp
+    duplicate_rows = df_merged[df_merged.duplicated(keep=False)]
+    if not duplicate_rows.empty:
+        raise HTTPException(status_code=400, detail="Dữ liệu import vào chứa các hàng trùng lặp")
+    
     # Thêm dữ liệu từ dataframe vào bảng đã có sẵn
-    df.to_sql(table_name, engine, if_exists='append', index=False)
+    df_new.to_sql(table_name, engine, if_exists='append', index=False)
     
     # Trả về kết quả thành công
     return {"message": "Data imported successfully."}
+
 
 
 #API chọn ra các bảng A10,A15 trong cal_curve_value
@@ -325,9 +340,11 @@ async def get_items(table_name: str, db : Session = Depends(get_db), page: int =
     # Load thông tin bảng
     table = Table(table_name, metadata, autoload=True)
     # Thực hiện truy vấn dữ liệu với offset và limit được tính dựa trên start và end
+    first_col = str(table.columns.keys()[0])
+
     start = (page - 1) * rowsPerPage
     end = page * rowsPerPage
-    stmt = select(table).order_by(table.c.record_id).offset(start).limit(end - start)
+    stmt = select(table).order_by(table.c[first_col]).offset(start).limit(end - start)
     rows = db.execute(stmt)
     # Trả về kết quả dưới dạng list các dict
     return [dict(row) for row in rows]
